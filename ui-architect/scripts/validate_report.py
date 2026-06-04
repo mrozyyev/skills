@@ -9,19 +9,16 @@ import sys
 import re
 
 REQUIRED_SECTIONS = [
-    "Architecture Overview",
-    "Provider / Context Tree",
-    "Screen Layout",
-    "Header",
-    "Scrolling",
-    "Keyboard Handling",
-    "Input Bar",
-    "Content Rendering",
-    "Animations",
-    "Edge Cases",
+    "What This UI Does",
+    "Recommended Stack",
+    "Architecture",
+    "Component Tree",
+    "Implementation Guide",
+    "Keyboard",
+    "Gotchas",
+    "Migration",
     "Data Model",
-    "Dependencies",
-    "Key Implementation Notes",
+    "Dependency Map",
 ]
 
 SECTION_ALIASES = {

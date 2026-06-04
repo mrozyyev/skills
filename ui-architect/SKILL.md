@@ -1,326 +1,418 @@
 ---
 name: ui-architect
-description: Analyze any UI component, screen, or page from any framework (React Native, SwiftUI, Flutter, web, etc.) and produce a complete, detailed technical specification an agent can follow to reproduce the exact UX. Trigger this skill whenever the user asks you to analyze a UI, reverse-engineer a UI pattern, create a technical spec for a UI component, or figure out how some UI is built — even if they just say "how does this UI work" or "break down this component". Also trigger when they ask about installing/using libraries but actually need to understand a UI implementation. Do NOT trigger for pure backend or logic-only tasks.
+description: Given any existing UI (from a GitHub repo, npm package, URL, pasted code, or even a screenshot/description), analyze it and produce a complete, future-proof replication guide that another agent can follow to BUILD the UI from scratch using the LATEST versions of everything. Trigger this whenever the user asks you to analyze, break down, reverse-engineer, or replicate a UI — phrases like "how does this UI work", "build me something like this", "what's the architecture of this", "can you recreate this screen", "what dependencies does this use", "figure out how this is built". Also trigger when the user pastes code or a URL and asks you to study it. Do NOT trigger for pure backend, API, or logic-only tasks with no UI component.
 ---
 
 # UI Architect
 
-A skill for analyzing any user interface — from any framework, platform, or codebase — and producing comprehensive technical specifications that another agent can follow to recreate the exact user experience.
+A skill that takes any existing user interface — from any framework, any platform, any age — and produces a **future-proof replication spec**: a detailed technical document another agent can follow to BUILD that UI from scratch with the latest versions of all dependencies.
 
-This skill was inspired by real-world research on chat UIs from libraries like `react-native-gifted-chat`, `stream-chat-react-native`, and `expo-ai`. The methodology generalizes to any UI.
+## Why This Exists
 
-## Core Philosophy
+Codebases rot. A tutorial from 2022 uses `react-native-gifted-chat@1.0.0`, but the world is at `3.3.3` now. A Flutter chat UI from 2023 uses an old `provider` pattern, but `riverpod` is the modern approach. A SwiftUI example from last year used `@available(iOS 15, *)` APIs, but now iOS 18 changes everything.
 
-The goal is not to describe what the UI looks like (that's a designer's job). The goal is to document **how it works** — the architecture, component tree, scrolling mechanics, keyboard handling, animations, dependencies, and edge cases — so an agent implementing it has everything they need to match the production UX.
+This skill exists so that when someone says "build me a chat like this one" and points at a 2-year-old repo, the agent doesn't just copy-paste the obsolete code. Instead, it:
 
-A good UI spec answers:
-1. **What are the layers?** — Provider hierarchy, context, navigation
-2. **How does it scroll?** — FlatList vs ScrollView, inverted or not, keyboard avoidance
-3. **How does the input work?** — TextInput behavior, send flow, attachments, animations
-4. **How does the header behave?** — What's in it, transparency, animations
-5. **What are the dependencies?** — Every package and why
-6. **What are the edge cases?** — Empty states, keyboard transitions, loading, errors
-7. **What's the data model?** — Message types, user types, state shape
+1. **Researches the original** — understands what the UI does at a functional level
+2. **Maps to the present** — finds the LATEST versions of every library, framework, and API
+3. **Documents the gap** — notes what changed, what broke, what's better now
+4. **Produces a build-ready spec** — so another agent (or the same agent later) can implement it fresh
 
-## How to Use This Skill
+## The Core Workflow
 
-### Phase 1: Identify the Target
-
-First, determine what the user wants analyzed. Ask clarifying questions if needed:
-
-- **What is the UI?** (a library, a component, a screen, a pattern)
-- **Where is it?** (GitHub URL, npm package, local path, just a description)
-- **What framework?** (React Native, SwiftUI, Flutter, web, unknown)
-- **What specific aspects?** (everything, or just the header, scrolling, input, etc.)
-- **What's the output format?** (single markdown file, multi-file report, inline)
-
-### Phase 2: Research (Fetcher Phase)
-
-Gather information from all available sources. Use subagents for parallel research.
-
-**For GitHub repos:**
-- Read the README
-- Read `package.json` / `pubspec.yaml` / `Podfile` / `build.gradle` (dependencies)
-- Explore the source directory structure
-- Read the main component files (look for the orchestrator)
-- Read individual UI component files
-- Look at example apps and tests for usage patterns
-
-**For npm/PyPI/pub packages:**
-- Fetch the npm page or package registry page
-- Read documentation site if available
-- Search for example usage patterns
-
-**For source code files:**
-- Read the code directly
-- Trace the component hierarchy from top to bottom
-- Look for keyboard handling, scroll listeners, animation code
-
-**For documentation sites:**
-- Fetch the docs
-- Look for component API references
-- Find installation guides and prop tables
-
-### Phase 3: Analysis Dimensions
-
-Analyze every aspect of the UI. Use these dimensions as a checklist.
-
-#### 1. Architecture & Component Tree
-- Full component hierarchy (parent to leaf)
-- Provider/context wrapping order
-- State management (local state, context, Redux, etc.)
-- Navigation/routing structure
-- Screen registration and deep linking
-
-#### 2. Layout Structure (Top to Bottom)
 ```
-┌─────────────────────────┐
-│  HEADER / NAV BAR       │
-├─────────────────────────┤
-│  CONTENT AREA           │
-│  ┌───────────────────┐  │
-│  │ List/Scroll       │  │
-│  │   - Item 1        │  │
-│  │   - Item 2        │  │
-│  └───────────────────┘  │
-├─────────────────────────┤
-│  INPUT TOOLBAR / CTA    │
-└─────────────────────────┘
+User: "Here's a UI. Build me a replication guide."
+  │
+  ▼
+Phase 1: INPUT — Determine what the user provided
+  │ (URL? GitHub repo? npm package? Code snippet? Screenshot?)
+  ▼
+Phase 2: RESEARCH — Deep-dive into the original
+  │ (Source code, docs, dependencies, architecture)
+  ▼
+Phase 3: MODERNIZE — Find latest equivalents
+  │ (npm registry, pub.dev, Swift Package Index, web search)
+  ▼
+Phase 4: REPORT — Write the replication spec
+  │ (Comprehensive markdown saved to filesystem)
+  ▼
+Phase 5: HANDOFF — Tell the user where the report is
+  (They can now build from it or hand it to another agent)
 ```
-
-#### 3. Header / Navigation Bar
-- How is it implemented? (stack navigator header, custom component, native nav)
-- What content does it contain? (back button, title, actions, avatars)
-- Is it transparent, blurred, solid? Any animation?
-- How does it handle safe area insets?
-- How does it behave when keyboard opens? (collapses, hides, stays)
-
-#### 4. Scroll Behavior
-- FlatList, ScrollView, ListView, LazyVStack, etc.
-- Is it inverted? (newest at bottom vs top)
-- Scroll-to-bottom: What triggers it? How is it implemented?
-- Auto-scroll on content change: debounce/animation strategy
-- Pagination: load more, infinite scroll implementation
-- Scroll position preservation (for streaming/AI content)
-
-#### 5. Keyboard Handling
-- How does the view avoid the keyboard?
-  - `KeyboardAvoidingView` / `KeyboardCompatibleView`
-  - `useAnimatedKeyboard` + translate transform
-  - Native `adjustResize` / `adjustPan`
-  - `KeyboardController` / custom implementation
-- What is the `keyboardVerticalOffset`? How is it calculated?
-- `keyboardDismissMode` and `keyboardShouldPersistTaps` values
-- Does the keyboard animate smoothly? (Reanimated or native driver)
-- Android-specific handling (translucent status bar, IME padding)
-- Does tapping outside/on messages dismiss the keyboard?
-
-#### 6. Input Bar / Composer
-- Position: absolute at bottom or part of layout?
-- TextInput props: multiline, placeholder, returnKeyType, blurOnSubmit
-- Send button: visibility conditions, animation, disabled state
-- Attachments: file picker, image picker, camera
-- Character limit, mentions, commands
-- Auto-growing text input: min/max height, scroll behavior
-- Placeholder text and styling
-
-#### 7. Content / Message Rendering
-- How is each item rendered? (flexbox layout, alignment left/right)
-- Avatar rendering: position, visibility rules, fallback (initials)
-- Content types: text, image, video, audio, file, link previews, custom cards
-- Status indicators: sent/delivered/read/failed ticks
-- Timestamps: format, position, localization
-- Grouping: consecutive messages from same user
-- Reactions, replies (threads), swipe-to-reply
-
-#### 8. Animations & Transitions
-- Typing indicator: dot animation details
-- Reply preview: mount/unmount animation
-- Send button: visibility fade
-- Day separator: scroll-based fade
-- Smooth scrolling: `scrollToEnd`, `scrollToIndex`
-- Gesture-driven animations (swipe-to-reply, pull-to-refresh)
-
-#### 9. Edge Cases & UX States
-- Empty state (no messages)
-- Loading state (initial load)
-- Error state (send failure, network error)
-- Keyboard opening while scrolling
-- Rapid message sending / streaming content
-- Offline support
-- Accessibility (VoiceOver/TalkBack labels)
-
-#### 10. Data Model
-- Message interface: all fields and their types
-- User interface
-- State shape
-- API response format (if applicable)
-- Local storage / caching schema
-
-#### 11. Dependencies
-Every package with its purpose. Separate into:
-- Core framework
-- UI components (navigation, modals, bottom sheets)
-- Network/API
-- Animations
-- Media (images, video, audio)
-- Utilities (dates, i18n, IDs)
-- Storage
-
-### Phase 4: Write the Report
-
-Structure the report using this template. The goal is **actionable detail** — an agent should be able to implement the UI from this document alone.
-
-#### Report Template
-
-```markdown
-# [UI Name] - Technical Spec
-
-**Analyzed from:** [source URL/path]  
-**Framework:** [React Native / SwiftUI / Flutter / Web]  
-**Version analyzed:** [version/commit]  
 
 ---
 
-## 1. Architecture Overview
+## Phase 1: Identify the Input
 
-[Component hierarchy diagram using indentation or ASCII art]
+The user might give you the UI in many forms. Figure out which one and adjust your approach.
 
-## 2. Provider / Context Tree
+### Type A: GitHub Repository URL
+Someone built it. You can read the source.
+- Clone or fetch the repo (read only, don't modify)
+- Read `package.json`, `pubspec.yaml`, `Podfile`, `build.gradle` — get the dependency list
+- Read the README — what is this thing?
+- Explore the source tree — find the main UI components
+- Trace the component hierarchy from entry point to leaf
+- Look at the example app if there is one
 
-[Wrapping order, what each provider does]
+### Type B: npm / PyPI / pub.dev Package
+Someone published it. It's a library or a starter template.
+- Fetch the package page — read description, version, dependencies
+- Read the docs site if linked
+- Look for a GitHub link and read the source
+- Check the tag for the latest version
 
-## 3. Screen Layout
+### Type C: Raw Code Snippet
+The user pasted code directly.
+- Read the code carefully
+- Identify the framework (RN, SwiftUI, Flutter, web)
+- Note any imports/requires — these reveal dependencies
+- Infer the component structure from the code
 
-```
-┌─────────────────────────┐
-│  HEADER                 │
-├─────────────────────────┤
-│                         │
-│  CONTENT AREA           │
-│                         │
-├─────────────────────────┤
-│  INPUT / FOOTER         │
-└─────────────────────────┘
-```
+### Type D: Screenshot / Description
+No code, just a visual or a description.
+- Ask clarifying questions if needed
+- Infer the framework from context clues
+- Research similar UIs in the likely framework
+- Document your assumptions in the report
 
-## 4. Header
+### Type E: URL to a Live App
+- Use web fetch to understand what's there
+- Note it's a live app so you can only observe behavior, not read internals
+- Document what you can observe: animations, scroll behavior, keyboard handling, layout
 
-[Full implementation details]
+---
 
-## 5. Scrolling
+## Phase 2: Deep Research
 
-[All scroll mechanics]
+Once you have access to the source (or as much as you can get), research these aspects. Each of these goes into the report.
 
-## 6. Keyboard Handling
+### 2.1 — What Is This UI? (Metadata)
+| Field | What to capture |
+|---|---|
+| Name | What is this UI/screen/component called? |
+| Source | Where did we get it? (URL, path, etc.) |
+| Original Framework | React Native, Flutter, SwiftUI, Web (React, Vue, Svelte), etc. |
+| Original Versions | Every dependency with its EXACT version from the original |
+| Purpose | What does this UI do? (chat, feed, form, dashboard, etc.) |
 
-[How keyboard is avoided, offset values, platform differences]
+### 2.2 — Architecture
+- Full component/provider hierarchy
+- How is the screen assembled? Which components wrap which?
+- Navigation approach (stack, tab, custom navigator)
+- State management (Context, Redux, Riverpod, ObservableObject, etc.)
 
-## 7. Input Bar
+### 2.3 — Dependencies (Original)
+List every dependency the original uses, with versions. Group by category:
+- **Framework**: react-native@0.72.0, flutter 3.10, etc.
+- **UI Components**: react-native-gifted-chat@1.0.0, etc.
+- **Navigation**: react-navigation, Router, Navigator 2.0, etc.
+- **Animations**: react-native-reanimated, Lottie, SwiftUI animations
+- **Media**: image picker, video player, audio recorder
+- **Network**: Apollo, tRPC, axios, URLSession, etc.
+- **Utilities**: dayjs, zod, i18next, etc.
 
-[TextInput config, send button, attachments]
+### 2.4 — UI Behavior (Functional Analysis)
+This is the most important part. Document what the UI DOES, not just what it IS:
 
-## 8. Content Rendering
+**Header:**
+- What's in it? (back button, title, icons, avatars, etc.)
+- How does it look? (transparent, blurred, solid, gradient)
+- Does it change on scroll? (collapse, hide, color shift)
+- How does the keyboard affect it?
 
-[Item layout, avatars, bubbles, status, timestamps]
+**Input Bar (if applicable):**
+- Where is it positioned? (absolute bottom, part of layout)
+- TextInput behavior: multiline? placeholder? returnKeyType?
+- Send button: when visible? animation? disabled state?
+- Attachments: image picker, file picker, camera, voice?
+- Auto-grow: min/max height, scroll when tall?
+- Submit flow: what happens on send?
 
-## 9. Animations
+**Scrolling:**
+- What's the container? (FlatList, ScrollView, UICollectionView, List)
+- Is it inverted? (newest at bottom)
+- Auto-scroll on new content? Animated? Debounced?
+- Scroll-to-bottom button? When visible?
+- Pagination / load more?
 
-[Every animation with timing values and technology used]
+**Keyboard Handling:**
+- How does the UI avoid the keyboard?
+- Any keyboardVerticalOffset? How is it calculated?
+- keyboardDismissMode? keyboardShouldPersistTaps?
+- Platform differences?
 
-## 10. Edge Cases
+**Content Items:**
+- How is each item laid out? (flexDirection, alignment)
+- Avatar: position, visibility rules, fallback (initials, icon)
+- Text: link detection, markdown, custom fonts
+- Media: gallery grid, video player, audio player
+- Status indicators: ticks for sent/delivered/read/failed
+- Reactions: position, style, interaction
+- Replies/threads: how are they shown?
 
-[Empty, loading, error, streaming, offline]
+**Animations:**
+- Typing indicator: how do the dots animate?
+- Message insertion: fade in, slide in, instant?
+- Reply preview: mount/unmount animation?
+- Day separator: scroll-based fade?
+- Any gesture-driven animations?
 
-## 11. Data Model
+**Edge Cases:**
+- Empty state
+- Loading state
+- Error state (send failure, network)
+- Streaming content (AI typing)
+- Offline behavior
+- Accessibility features
 
-[TypeScript interfaces or equivalent]
+---
 
-## 12. Dependencies
+## Phase 3: Modernization Research
 
-| Package | Version | Purpose |
-|---|---|---|
-| ... | ... | ... |
+This is what makes the skill different from a simple analysis. For EVERY dependency found in Phase 2, you MUST:
 
-## 13. Key Implementation Notes
+### 3.1 — Find the Latest Version
+For each package, determine the CURRENT latest stable version. Use:
+- `npm view <package> version` (if Node/npm available)
+- Web search "[package] npm latest version"
+- pub.dev, Swift Package Index, Maven Central, etc.
 
-[Things that would be easy to miss: platform differences, gotchas, required configurations]
-```
+### 3.2 — Map to Modern Equivalent
+Some libraries are deprecated or superseded. If so, find the modern replacement:
+- `react-navigation` -> `expo-router` (in Expo projects)
+- `Redux` -> `Zustand` / `Jotai` / Context
+- `axios` -> `fetch` / `tRPC`
+- Old animation patterns -> Reanimated 4 worklets
+- `Provider` (Flutter) -> `Riverpod`
 
-### Phase 5: Provide Implementation Guidance
+### 3.3 — Document Breaking Changes
+For each package where the version changed significantly:
+- What breaking changes happened between original version and latest?
+- What does a migration look like?
+- Are there new setup steps? (babel plugins, config files, native module linking)
 
-After the report, include a section with actionable implementation guidance:
+### 3.4 — Research Gotchas
+Search for known issues with the latest versions:
+- "react-native-keyboard-controller version X issues"
+- "react-native-reanimated 4 migration problems"
+- "X library not compatible with Y framework version"
+- Android-specific and iOS-specific gotchas
+
+### 3.5 — Build the Version Table
 
 ```markdown
-## Implementation Steps
+## Dependency Map: Original → Latest
 
-1. **Setup:** Install dependencies, configure babel/native modules
-2. **Providers:** Wrap app in required providers
-3. **Screen:** Create the screen with header configuration
-4. **Content List:** Set up the list/scroll component
-5. **Input Bar:** Create the input toolbar
-6. **Message Items:** Implement item rendering
-7. **Keyboard:** Configure keyboard avoidance
-8. **Edge Cases:** Handle empty/loading/error states
-9. **Polish:** Add animations, typing indicator, scroll-to-bottom
+| Package | Original | Latest | Breaking? | Notes |
+|---|---|---|---|---|
+| react-native | 0.72.0 | 0.81.5 | Yes | New architecture enabled by default |
+| react-native-gifted-chat | 1.0.0 | 3.3.3 | Yes | Now requires reanimated + gesture-handler + keyboard-controller |
+| react-native-reanimated | 2.x | 4.2.1 | Yes | New babel plugin, worklets syntax changes |
+| ... | ... | ... | ... | ... |
 ```
 
-## Framework-Specific Guidance
+---
 
-### React Native / Expo
-- Dependencies typically include: `react-native-reanimated`, `react-native-gesture-handler`, `react-native-safe-area-context`, `react-native-keyboard-controller`
-- Use `useAnimatedKeyboard` for smooth keyboard tracking
-- FlatList `inverted` for chat
-- `react-native-keyboard-controller` > `KeyboardAvoidingView` for modern apps
-- Always check: `keyboardVerticalOffset`, `keyboardShouldPersistTaps`, `keyboardDismissMode`
+## Phase 4: Write the Replication Spec
 
-### Flutter
-- Use `ListView.builder` with `reverse: true` for chat
-- `TextField` with `maxLines` for auto-growing input
-- `MediaQuery.of(context).viewInsets.bottom` for keyboard height
-- `Dismissible` for swipe-to-reply
-- `AnimatedList` for smooth message insertions
-
-### SwiftUI / UIKit
-- `UITableView` with inverted or `scrollToRow(at: .bottom)` for chat
-- `UIResponder.keyboardWillShowNotification` for keyboard tracking
-- `inputAccessoryView` for keyboard-attached toolbar (iOS)
-- `List` or `ScrollView` with `ScrollViewReader` for scroll-to-bottom
-
-### Web (React)
-- `overflow-y: auto` container with flexbox column-reverse or scroll-to-bottom
-- `contentEditable` or textarea for input
-- `IntersectionObserver` for load-more pagination
-- `scrollIntoView({ behavior: 'smooth' })` for auto-scroll
-
-## Key Principles for Writing Good Specs
-
-1. **Be specific, not generic.** Don't say "the header has a title" — say "the header uses a transparent navigation bar with a blurred background (systemChromeMaterial), left gear icon linking to /settings, and a right new-chat button visible only when messages exist."
-2. **Explain the why.** "The keyboard offset equals `insets.top + headerHeight` because the KeyboardAvoidingView needs to know the distance from screen top to the chat container."
-3. **Note platform differences.** "On iOS, uses `useHeaderHeight()` from react-navigation. On Android, keyboardVerticalOffset is not needed because `adjustResize` handles it natively."
-4. **Include dependencies with versions.** Not just "react-native-reanimated" but "react-native-reanimated ~4.1.1 (peer dep, requires babel plugin)"
-5. **Show key code patterns.** Not the full file, but the critical 5-10 lines that show how something works.
-6. **Document the data model completely.** Every field, its type, and whether it's optional.
-
-## Examples & Reference
-
-The `references/` directory contains full example reports. Read them before starting to understand the expected depth and format:
-
-- `references/chat-ui-expo-ai.md` — Expo Router server-component-based AI chat
-- `references/chat-ui-gifted-chat.md` — react-native-gifted-chat library
-- `references/chat-ui-stream-chat.md` — Stream Chat React Native SDK
-
-These show the level of detail and structure expected from this skill. Your reports should match this standard.
-
-## Folder Structure for Output
-
-Save reports in a structured directory:
+Save the report to a file. Use this naming convention:
 
 ```
-ui-research/
-├── 01-[ui-name].md            # Main report
-└── references/                 # (optional) Supporting files
-    └── ...
+ui-specs/ui-name-<descriptive-name>.md
 ```
 
-Name the file descriptively: `01-expo-ai-chat.md`, `02-swiftui-message-list.md`, `03-flutter-chat-input.md`, etc.
+For example:
+- `ui-specs/chat-ui-expo-ai.md`
+- `ui-specs/photo-feed-instagram-clone.md`
+- `ui-specs/e-commerce-product-page.md`
+
+### Report Structure
+
+```markdown
+# [UI Name] — Replication Spec
+
+**Analyzed from:** [source]
+**Analysis date:** [YYYY-MM-DD]
+**Target framework:** [React Native / Flutter / SwiftUI / Web]
+**Target platform:** [iOS / Android / Web / Cross-platform]
+**Estimated effort:** [rough estimate, e.g. "2-3 days for experienced dev"]
+
+---
+
+## 1. What This UI Does
+
+[A 2-3 sentence summary of the UI's purpose and key interactions]
+
+## 2. Recommended Stack (Build Fresh)
+
+### Framework
+| Choice | Version | Why |
+|---|---|---|
+| React Native | 0.81.5 | Latest stable, new arch enabled |
+| Expo SDK | 54 | Manages native builds, OTA updates |
+| TypeScript | 5.x | Type safety |
+
+### Dependencies
+
+| Package | Version | Category | Purpose |
+|---|---|---|---|
+| expo-router | ~6.x | Routing | File-based navigation |
+| react-native-gifted-chat | 3.3.3 | UI | Chat messages & bubbles |
+| react-native-reanimated | ~4.2.x | Animation | Keyboard tracking, transitions |
+| react-native-gesture-handler | ~2.30.x | Gestures | Swipe-to-reply, touch handling |
+| react-native-safe-area-context | ~5.x | Layout | Safe area insets |
+| react-native-keyboard-controller | 1.x | Keyboard | Smooth keyboard avoidance |
+| ... | ... | ... | ... |
+
+### Installation Command
+```bash
+npx create-expo-app@latest MyApp --template blank-typescript
+npx expo install react-native-gifted-chat react-native-reanimated react-native-gesture-handler react-native-safe-area-context react-native-keyboard-controller
+```
+
+## 3. Architecture
+
+### Component Tree
+```
+App
+  └── GestureHandlerRootView
+       └── SafeAreaProvider
+            └── KeyboardProvider
+                 └── NavigationContainer / Expo Router
+                      └── ChatScreen
+                           ├── Stack.Navigator (header config)
+                           ├── MessagesFlatList (inverted)
+                           │    ├── MessageBubble (left/right)
+                           │    ├── DaySeparator
+                           │    ├── TypingIndicator
+                           │    └── ScrollToBottomButton
+                           └── InputToolbar
+                                ├── ActionsButton
+                                ├── Composer (TextInput)
+                                └── SendButton
+```
+
+### Provider Hierarchy
+```
+GestureHandlerRootView
+  └── SafeAreaProvider (react-native-safe-area-context)
+       └── KeyboardProvider (react-native-keyboard-controller)
+            └── Navigation provider
+                 └── Screen content
+```
+
+## 4. Implementation Guide
+
+### 4.1 — Setup & Providers
+
+[Step-by-step code for setting up the required providers]
+
+### 4.2 — Screen / Header
+
+[How to configure the navigation header or custom header component]
+
+### 4.3 — Message List
+
+[How to set up the FlatList/ScrollView with inverted rendering, scroll-to-bottom, etc.]
+
+### 4.4 — Keyboard Handling
+
+[How to configure keyboard avoidance — exact offset values, props to pass]
+
+### 4.5 — Input Toolbar
+
+[How to build the input bar — TextInput config, send button, attachments]
+
+### 4.6 — Message Bubbles
+
+[How to render messages — layout, avatars, text, media, status]
+
+### 4.7 — Animations
+
+[Every animation with code snippets — typing indicator, reply preview, etc.]
+
+### 4.8 — Edge Cases
+
+[How to handle empty state, loading, errors, streaming]
+
+## 5. Gotchas & Migration Notes
+
+[The critical things that WILL go wrong if someone doesn't know about them]
+
+### From the Original Version Analysis:
+- The original used `react-native-gifted-chat@1.x` which had a different prop API. In v3.x, you now need `keyboardAvoidingViewProps`, the `reply` prop is restructured, and `react-native-keyboard-controller` is a required peer dep.
+- `react-native-reanimated@4.x` requires a different babel plugin path than v2.x
+- Android edge-to-edge changes in RN 0.76+ affect keyboard handling
+
+### General Gotchas:
+- `keyboardVerticalOffset` MUST include the navigation header height
+- On Android with edge-to-edge, set `statusBarTranslucent` and `navigationBarTranslucent`
+- Inverted FlatList means `ListHeaderComponent` renders at the visual bottom
+- If using Expo, some native modules need Expo dev client (not Go)
+
+## 6. Data Model
+
+[TypeScript interfaces for the data driving this UI]
+
+## 7. Original Analysis Reference
+
+[Brief reference to the original source — what we analyzed, where it came from, the old dependency versions]
+```
+
+### What Makes a Great Spec
+
+**DO:**
+- Use imperative language for implementation steps ("Install X. Configure Y. Add Z.")
+- Show real code snippets for critical parts (5-15 lines, not full files)
+- Explain WHY something is done a certain way
+- Include the EXACT installation commands
+- Note every platform difference (iOS vs Android vs Web)
+- Be specific about version numbers
+
+**DON'T:**
+- Don't just describe what you see — prescribe how to build it
+- Don't copy old code verbatim — rewrite it for the latest APIs
+- Don't say "the user should figure out keyboard offset" — tell them exactly what value to use and how to calculate it
+
+---
+
+## Phase 5: Handoff
+
+When the report is written and saved, tell the user:
+
+> "I've analyzed **[original UI name]** and produced a replication spec at **[file path]** . It covers:
+> - **Architecture** — component tree, provider hierarchy, navigation
+> - **Recommended stack** — latest versions of everything, with breaking changes mapped
+> - **Implementation guide** — step-by-step with code snippets
+> - **Gotchas** — what will trip you up if you're not careful
+> - **Data model** — the shape of your data
+>
+> The spec is designed so that you (or another agent) can build this UI from scratch without ever looking at the original code. Want me to walk through any section, or start implementing?"
+
+---
+
+## Reference Files
+
+The `references/` directory contains example specs produced by this skill. Read them before starting if you want to see the expected depth:
+
+- `references/chat-ui-gifted-chat.md` — A spec for chat UI using react-native-gifted-chat
+- `references/chat-ui-expo-ai.md` — A spec for Expo AI chat with RSC streaming
+- `references/chat-ui-stream-chat.md` — A spec for Stream Chat React Native SDK
+- `references/methodology.md` — The analysis methodology in detail (11 dimensions)
+
+---
+
+## Tips for Good Results
+
+1. **Use subagents for parallel research** — while you read the original source, have another agent checking npm for latest versions and searching for gotchas. Don't do this sequentially.
+
+2. **If npm view fails**, search the web for the latest version. Don't guess.
+
+3. **If the original code has known bugs or issues**, note them in the gotchas section so the new implementation avoids them.
+
+4. **If the original is very complex**, focus on the core UX patterns and note where the user might want to simplify or improve.
+
+5. **If the user gives you a screenshot only**, document your assumptions clearly. Mark them as "ASSUMPTION" in the report.
+
+6. **Always check React Native 0.76+ new architecture implications** — this affects keyboard handling, scroll behavior, and native module compatibility.
